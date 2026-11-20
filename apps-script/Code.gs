@@ -220,9 +220,41 @@ function applyApprovedSchemaMigration() {
     { name: APP.SHEETS.payables, idColumn: 8, headers: APP.HEADERS.payables },
     { name: APP.SHEETS.fixedExpenses, idColumn: 6, headers: APP.HEADERS.fixedExpenses }
   ];
+  const extraPlans = [
+    { name: APP.SHEETS.history, headers: APP.HEADERS.history },
+    { name: APP.SHEETS.weekly, headers: APP.HEADERS.weekly },
+    { name: APP.SHEETS.goals, headers: APP.HEADERS.goals }
+  ];
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+    // Preflight every existing header before the first spreadsheet mutation.
+    plans.forEach(function (plan) {
+      const sheet = requiredSheet_(ss, plan.name);
+      const existing = sheet.getRange(1, 1, 1, plan.idColumn - 1).getDisplayValues()[0];
+      plan.headers.slice(0, plan.idColumn - 1).forEach(function (header, index) {
+        if (String(existing[index] || '').trim() !== header) {
+          throw new Error('Cabeçalho divergente em ' + plan.name + ', coluna ' + (index + 1) + '. Nenhuma alteração foi feita.');
+        }
+      });
+      if (sheet.getMaxColumns() >= plan.idColumn) {
+        const currentIdHeader = String(sheet.getRange(1, plan.idColumn).getDisplayValue() || '').trim();
+        if (currentIdHeader && currentIdHeader !== 'ID') {
+          throw new Error('A coluna destinada ao ID já contém outro cabeçalho em ' + plan.name + '. Nenhuma alteração foi feita.');
+        }
+      }
+    });
+    extraPlans.forEach(function (plan) {
+      const existing = ss.getSheetByName(plan.name);
+      if (existing && existing.getLastRow() > 0) {
+        const width = Math.min(existing.getMaxColumns(), plan.headers.length);
+        const actual = existing.getRange(1, 1, 1, width).getDisplayValues()[0];
+        const matches = plan.headers.slice(0, width).every(function (h, i) { return String(actual[i] || '').trim() === h; });
+        if (!matches || width !== plan.headers.length) {
+          throw new Error('A aba ' + plan.name + ' já existe com cabeçalhos diferentes. Nenhuma alteração foi feita.');
+        }
+      }
+    });
     plans.forEach(function (plan) {
       const sheet = requiredSheet_(ss, plan.name);
       if (sheet.getMaxColumns() < plan.idColumn) {
@@ -254,11 +286,6 @@ function applyApprovedSchemaMigration() {
       sheet.getRange(1, plan.idColumn).setValue('ID');
     });
 
-    const extraPlans = [
-      { name: APP.SHEETS.history, headers: APP.HEADERS.history },
-      { name: APP.SHEETS.weekly, headers: APP.HEADERS.weekly },
-      { name: APP.SHEETS.goals, headers: APP.HEADERS.goals }
-    ];
     extraPlans.forEach(function (plan) {
       let sheet = ss.getSheetByName(plan.name);
       if (!sheet) sheet = ss.insertSheet(plan.name);
@@ -279,6 +306,9 @@ function applyApprovedSchemaMigration() {
 
 function saveRecord_(ss, email, payload) {
   const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('SCHEMA_MIGRATION_APPROVED') !== 'true') {
+    throw codedError_('A migração do esquema ainda não foi autorizada pelo proprietário.', 'SCHEMA_APPROVAL_REQUIRED');
+  }
   if (props.getProperty('WRITE_ENABLED') !== 'true') {
     throw codedError_('Gravações ainda estão desativadas pelo administrador.', 'WRITE_DISABLED');
   }
