@@ -124,6 +124,9 @@ function inspectSchema_(ss) {
 
 function headerCheck_(sheet, expected) {
   if (!sheet) return { sheet: expected[0], ok: false, reason: 'aba ausente' };
+  if (sheet.getMaxColumns() < expected.length) {
+    return { sheet: sheet.getName(), ok: false, reason: 'colunas de ID ainda não adicionadas' };
+  }
   const actual = sheet.getRange(1, 1, 1, expected.length).getDisplayValues()[0]
     .map(function (x) { return String(x || '').trim(); });
   const ok = expected.every(function (x, i) { return actual[i] === x; });
@@ -184,7 +187,8 @@ function previewSchemaMigration() {
   ];
   const result = plans.map(function (plan) {
     const sheet = requiredSheet_(ss, plan.name);
-    const actual = sheet.getRange(1, 1, 1, plan.idColumn).getDisplayValues()[0];
+    const width = Math.min(sheet.getMaxColumns(), plan.idColumn);
+    const actual = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
     const blankIds = Math.max(0, sheet.getLastRow() - 1) -
       (sheet.getLastRow() < 2 ? 0 : sheet.getRange(2, plan.idColumn, sheet.getLastRow() - 1, 1)
         .getDisplayValues().filter(function (r) { return String(r[0] || '').trim() !== ''; }).length);
@@ -241,6 +245,16 @@ function applyApprovedSchemaMigration() {
         const currentIdHeader = String(sheet.getRange(1, plan.idColumn).getDisplayValue() || '').trim();
         if (currentIdHeader && currentIdHeader !== 'ID') {
           throw new Error('A coluna destinada ao ID já contém outro cabeçalho em ' + plan.name + '. Nenhuma alteração foi feita.');
+        }
+        const lastRow = sheet.getLastRow();
+        if (lastRow >= 2) {
+          const currentIds = sheet.getRange(2, plan.idColumn, lastRow - 1, 1).getDisplayValues()
+            .map(function (row) { return String(row[0] || '').trim(); }).filter(Boolean);
+          const unique = Object.create(null);
+          currentIds.forEach(function (value) {
+            if (unique[value]) throw new Error('IDs duplicados em ' + plan.name + '. Nenhuma alteração foi feita.');
+            unique[value] = true;
+          });
         }
       }
     });
