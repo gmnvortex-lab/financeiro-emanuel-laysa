@@ -33,11 +33,12 @@ O projeto não usa uma chave de serviço nem senha compartilhada. Cada pessoa en
 > Se o domínio Google Workspace bloquear Web Apps externos ou a política não disponibilizar a opção de contas Google, será necessário ajustar a política do administrador ou adotar outra arquitetura autenticada.
 
 ## 3. Configurar o painel
-1. Copie `config.example.js` para `config.js` no ambiente local.
-2. Preencha `appsScriptUrl`, `spreadsheetId` e `allowedAppOrigin`.
-3. Não inclua tokens, senhas ou dados da planilha. O `config.js` está no `.gitignore`.
-4. O painel chama o Apps Script por um iframe de retorno com nonce; a origem é validada pelo script.
-5. A primeira autorização pode abrir uma página Google para consentimento. Depois, retorne ao painel e use sincronizar.
+1. Publique o painel apenas depois de validar a autenticação e as permissões.
+2. Abra o painel e clique em **Conectar Google**.
+3. Na primeira utilização, informe a URL terminada em `/exec` do Apps Script e o ID da planilha. A origem do site é preenchida automaticamente.
+4. Esses três valores de configuração (URL, ID e origem) são armazenados localmente no navegador. Eles não são tokens nem senhas; nenhum token OAuth é salvo pelo painel. Também é possível usar `config.example.js` como modelo local, copiando para `config.js`, que está no `.gitignore`.
+5. O painel chama o Apps Script por um iframe de retorno com nonce; a origem é validada pelo script.
+6. A primeira autorização abre uma página Google para consentimento. Depois, retorne ao painel e clique em **Sincronizar**.
 
 ## 4. Estrutura atual lida (somente leitura)
 - `Resumo!A2:B17`
