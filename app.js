@@ -33,9 +33,8 @@ async function connectGoogle(){
  try{
   if(!window.FinanceiroSheets?.isConfigured()) throw new Error('CONFIG_MISSING');
   const url=window.FinanceiroSheets.authorizeUrl();
-  const win=window.open(url,'_blank','noopener');
-  if(!win) toast('Permita pop-ups para concluir a autorização Google.');
-  else toast('Conclua a autorização na janela Google e depois sincronize.');
+  window.open(url,'_blank','noopener,noreferrer');
+  toast('Conclua a autorização Google na nova aba e depois volte ao painel para sincronizar.');
  }catch(e){toast('Configure config.js com a URL do Apps Script e a origem do painel.')}
 }
 async function syncGoogle(){
