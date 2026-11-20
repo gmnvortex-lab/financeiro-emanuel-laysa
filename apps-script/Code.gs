@@ -113,7 +113,7 @@ function bridge_(p, result) {
     'window.parent.postMessage({channel:' + JSON.stringify(APP.CHANNEL) +
     ',nonce:' + nonce + ',result:' + body + '},' + origin + ');' +
     '</script><p>Retorno enviado ao painel. Você pode fechar esta janela.</p></body></html>';
-  return HtmlService.createHtmlOutput(html).setTitle(APP.NAME);
+  return HtmlService.createHtmlOutput(html)\n    .setTitle(APP.NAME)\n    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function safeMessage_(err) {
