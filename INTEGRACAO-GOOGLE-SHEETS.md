@@ -4,7 +4,8 @@
 - Integração de leitura preparada para a estrutura informada.
 - A planilha não foi alterada.
 - Nenhum conteúdo financeiro foi copiado para o repositório.
-- Escritas estão intencionalmente bloqueadas até aprovação das mudanças de esquema descritas abaixo.
+- Escritas estão intencionalmente bloqueadas. O desenho das mudanças foi aprovado, mas a execução na planilha ainda aguarda autorização expressa separada.
+- Foi incluída uma prévia de migração somente leitura e uma função de migração manual com trava `SCHEMA_MIGRATION_APPROVED`; nenhuma delas foi executada.
 - O Apps Script executa como o usuário que acessa o Web App; a própria permissão da planilha continua valendo.
 
 ## Por que Apps Script executando como o usuário
@@ -18,7 +19,7 @@ O projeto não usa uma chave de serviço nem senha compartilhada. Cada pessoa en
 5. Substitua o manifesto pelo conteúdo de `apps-script/appsscript.json`.
 6. Em **Configurações do projeto → Propriedades do script**, crie:
    - `SPREADSHEET_ID`: ID da planilha informado pelo proprietário.
-   - `ALLOWED_EMAILS`: e-mails Google autorizados, separados por vírgula.
+   - `ALLOWED_EMAILS`: os dois e-mails Google exatos de Emanuel e Laysa, separados por vírgula. Não envie senhas.
    - `APP_ORIGIN`: origem exata do painel, sem caminho. Ex.: `https://SEU_USUARIO.github.io`.
 7. Salve o projeto.
 
@@ -48,8 +49,8 @@ O projeto não usa uma chave de serviço nem senha compartilhada. Cada pessoa en
 
 A leitura considera a linha 1 como cabeçalho nas três abas de registros e começa na linha 2. Datas são serializadas como `yyyy-MM-dd`. A aba Resumo é lida como valores calculados.
 
-## 5. Alterações propostas antes de habilitar gravação
-**Nenhuma destas alterações foi feita. Precisamos da sua aprovação.**
+## 5. Estrutura aprovada, mas ainda não aplicada
+O desenho abaixo foi aprovado. **A planilha continua intacta**: as colunas e abas só serão criadas após autorização explícita para executar a migração.
 
 | Aba | Alteração proposta | Motivo |
 |---|---|---|
@@ -60,17 +61,20 @@ A leitura considera a linha 1 como cabeçalho nas três abas de registros e come
 | Nova aba `Planejamento semanal` (opcional) | ID, Data, Descrição, Categoria, Valor previsto, Status, Observações | Persistir o planejamento em todos os dispositivos |
 | Nova aba `Metas` (opcional) | ID, Meta, Valor alvo, Valor acumulado, Prazo, Observações | Persistir metas em todos os dispositivos |
 
-O script de escrita deverá usar `LockService`, validar IDs sob bloqueio e registrar cada alteração no Histórico. Movimentações financeiras devem ser tratadas como livro-razão: não apagar registros históricos; correções devem gerar estorno/lançamento de ajuste. A exclusão de contas/despesas poderá ser lógica ou auditada.
+O código já contém `previewSchemaMigration()` (somente leitura) e `applyApprovedSchemaMigration()` (migração manual, com trava de aprovação). Antes da execução, a prévia deve ser revisada. A migração adicionará IDs às linhas existentes sem sobrescrever os sete campos atuais, criará as três abas propostas se não existirem e interromperá a operação se detectar cabeçalhos ou IDs conflitantes. A execução exige autorização adicional do escopo de escrita do Google Sheets; o manifesto do repositório continua em `spreadsheets.readonly`.
+
+O endpoint de gravação permanece fechado por padrão: exige `SCHEMA_MIGRATION_APPROVED=true`, `WRITE_ENABLED=true`, esquema validado, bloqueio `LockService`, ID único e `requestId` idempotente. Esses sinalizadores ainda não foram ativados. Movimentações financeiras devem ser tratadas como livro-razão: não apagar registros históricos; correções devem gerar estorno/lançamento de ajuste. A exclusão de contas/despesas poderá ser lógica ou auditada.
 
 **Sem IDs, duas transações legítimas iguais podem ser confundidas com duplicidade; sem bloqueio, dois usuários podem gravar simultaneamente.** Por isso, gravação está bloqueada por padrão nesta versão.
 
 ## 6. Itens que ainda precisam de definição
-- Confirmar os e-mails Google exatos autorizados (não enviar senhas).
-- Aprovar ou ajustar as colunas de ID e a aba Histórico.
-- Confirmar se a linha 1 contém os cabeçalhos.
+- Informar os dois e-mails Google exatos autorizados (não enviar senhas).
+- Autorizar separadamente a execução da migração na planilha depois de revisar a prévia.
+- Publicar e testar o Apps Script com a conta de Emanuel e depois com a de Laysa.
 - Aprovar a criação das abas opcionais `Metas` e `Planejamento semanal` se quiser que esses módulos também sincronizem com a planilha. Sem elas, esses módulos não terão armazenamento oficial compartilhado.
 - Definir a regra para despesas variáveis: a proposta é derivá-las das movimentações do tipo Saída; despesas fixas vêm da aba própria.
 - Testar leitura e permissões com as duas contas antes de habilitar qualquer gravação.
+- Depois da migração, atualizar o manifesto do Apps Script para o escopo de escrita somente quando for a hora de ativar gravações; não conceder esse escopo nesta fase.
 
 ## Segurança e publicação
 Não publique o painel com dados reais até testar a restrição de acesso com uma conta autorizada e outra não autorizada. O repositório público contém apenas código e placeholders. A URL do Web App e o ID da planilha não são senhas, mas devem ser tratados com cuidado operacional.
