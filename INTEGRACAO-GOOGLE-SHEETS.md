@@ -78,3 +78,13 @@ O endpoint de gravação permanece fechado por padrão: exige `SCHEMA_MIGRATION_
 
 ## Segurança e publicação
 Não publique o painel com dados reais até testar a restrição de acesso com uma conta autorizada e outra não autorizada. O repositório público contém apenas código e placeholders. A URL do Web App e o ID da planilha não são senhas, mas devem ser tratados com cuidado operacional.
+
+ 
+## Segurança e atualização
+- doPost recusa qualquer gravação com WRITE_NOT_AVAILABLE. O manifesto permanece em spreadsheets.readonly.
+- Não ative WRITE_ENABLED nem amplie escopos nesta implantação.
+- config.js com URL operacional e ID da planilha foi removido do versionamento. Configure a conexão no navegador.
+- Session.getActiveUser().getEmail() pode retornar vazio conforme o tipo de implantação/conta. Teste Emanuel, Laysa e conta não autorizada.
+- Sincronização ao abrir, a cada 30 segundos e ao retornar à aba; requisições sobrepostas são bloqueadas e falhas mantêm dados válidos.
+- Filtro mensal usa vencimento para pendências e data de pagamento para contas pagas. Saldo geral vem de Resumo.
+- O frontend aponta para assets/foto-perfil-emanuel-laysa.png; o arquivo original ainda precisa ser adicionado nesse caminho sem alterações.
