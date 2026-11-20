@@ -38,3 +38,7 @@ Após os testes: Settings → Pages → Deploy from a branch → selecionar `des
 Testar CRUD e filtros em cada módulo, persistência após atualizar, cálculos, exportação CSV e responsividade em dispositivos reais. A autenticação e integração com a planilha ainda não foram implementadas.
 ## Google Sheets
 A integração está preparada para leitura autenticada via Google Apps Script. A gravação permanece desativada até a aprovação das colunas de ID e da aba de auditoria. Consulte [INTEGRACAO-GOOGLE-SHEETS.md](INTEGRACAO-GOOGLE-SHEETS.md) para configurar o Apps Script, as contas autorizadas e o painel.
+
+ 
+## Atualização do dashboard
+Sincronização automática somente leitura ao abrir, a cada 30 segundos e ao retornar à aba. Escrita bloqueada até validação da identidade Google, escopos e migração. Para exibir a foto original, adicione-a sem alterações em assets/foto-perfil-emanuel-laysa.png.
