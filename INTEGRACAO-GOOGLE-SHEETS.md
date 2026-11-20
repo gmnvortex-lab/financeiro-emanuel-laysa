@@ -56,7 +56,9 @@ A leitura considera a linha 1 como cabeçalho nas três abas de registros e come
 | Movimentações | Coluna H: `ID` | Identificador estável e deduplicação |
 | Contas a pagar | Coluna H: `ID` | Atualização segura sem depender do número da linha |
 | Despesas fixas | Coluna F: `ID` | Atualização segura das despesas recorrentes |
-| Nova aba `Histórico` | Data/hora, usuário, ação, aba, ID, valores anteriores e novos | Auditoria de alterações |
+| Nova aba `Histórico` | Data/hora, usuário, ação, aba, ID, valores anteriores/novos e `requestId` | Auditoria append-only e prevenção de repetição de requisições |
+| Nova aba `Planejamento semanal` (opcional) | ID, Data, Descrição, Categoria, Valor previsto, Status, Observações | Persistir o planejamento em todos os dispositivos |
+| Nova aba `Metas` (opcional) | ID, Meta, Valor alvo, Valor acumulado, Prazo, Observações | Persistir metas em todos os dispositivos |
 
 O script de escrita deverá usar `LockService`, validar IDs sob bloqueio e registrar cada alteração no Histórico. Movimentações financeiras devem ser tratadas como livro-razão: não apagar registros históricos; correções devem gerar estorno/lançamento de ajuste. A exclusão de contas/despesas poderá ser lógica ou auditada.
 
@@ -66,7 +68,7 @@ O script de escrita deverá usar `LockService`, validar IDs sob bloqueio e regis
 - Confirmar os e-mails Google exatos autorizados (não enviar senhas).
 - Aprovar ou ajustar as colunas de ID e a aba Histórico.
 - Confirmar se a linha 1 contém os cabeçalhos.
-- Definir onde serão armazenadas metas e planejamento semanal: hoje não existem abas correspondentes na estrutura informada.
+- Aprovar a criação das abas opcionais `Metas` e `Planejamento semanal` se quiser que esses módulos também sincronizem com a planilha. Sem elas, esses módulos não terão armazenamento oficial compartilhado.
 - Definir a regra para despesas variáveis: a proposta é derivá-las das movimentações do tipo Saída; despesas fixas vêm da aba própria.
 - Testar leitura e permissões com as duas contas antes de habilitar qualquer gravação.
 
