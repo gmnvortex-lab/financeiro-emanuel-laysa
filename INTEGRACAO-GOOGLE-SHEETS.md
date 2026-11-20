@@ -9,7 +9,7 @@
 - O Apps Script executa como o usuário que acessa o Web App; a própria permissão da planilha continua valendo.
 
 ## Por que Apps Script executando como o usuário
-O projeto não usa uma chave de serviço nem senha compartilhada. Cada pessoa entra com a própria conta Google e autoriza o script. O script valida o e-mail numa lista permitida e abre a planilha com a identidade do usuário. A planilha deve permanecer compartilhada somente com os usuários autorizados.
+O projeto não usa chave de serviço nem senha compartilhada. Cada pessoa entra com a própria conta Google e autoriza o script. O Apps Script valida o e-mail numa lista permitida e abre a planilha com a identidade do usuário. A planilha também deve ser compartilhada somente com essas duas contas. `APP_ORIGIN` restringe o destino do retorno `postMessage` ao domínio configurado; não substitui a autenticação Google nem a lista de e-mails.
 
 ## 1. Preparar o projeto Apps Script
 1. Entre no Google com a conta proprietária da planilha.
@@ -38,7 +38,7 @@ O projeto não usa uma chave de serviço nem senha compartilhada. Cada pessoa en
 2. Abra o painel e clique em **Conectar Google**.
 3. Na primeira utilização, informe a URL terminada em `/exec` do Apps Script e o ID da planilha. A origem do site é preenchida automaticamente.
 4. Esses três valores de configuração (URL, ID e origem) são armazenados localmente no navegador. Eles não são tokens nem senhas; nenhum token OAuth é salvo pelo painel. Também é possível usar `config.example.js` como modelo local, copiando para `config.js`, que está no `.gitignore`.
-5. O painel chama o Apps Script por um iframe de retorno com nonce; a origem é validada pelo script.
+5. O painel chama o Apps Script por um iframe de retorno com nonce; o script só envia a resposta para a origem fixa configurada em `APP_ORIGIN`, e o navegador confere a janela de origem e o nonce.
 6. A primeira autorização abre uma página Google para consentimento. Depois, retorne ao painel e clique em **Sincronizar**.
 
 ## 4. Estrutura atual lida (somente leitura)
