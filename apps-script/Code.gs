@@ -136,16 +136,16 @@ function requiredSheet_(ss, name) {
 function readRows_(sheet, dataColumns, idColumn) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  return sheet.getRange(2, 1, lastRow - 1, dataColumns).getValues()
-    .map(function (row, index) {
-      const sheetRow = index + 2;
-      const id = idColumn <= sheet.getMaxColumns()
-        ? String(sheet.getRange(sheetRow, idColumn).getDisplayValue() || '').trim() : '';
-      return { sheetRow: sheetRow, id: id, values: row.map(serializeCell_) };
-    })
-    .filter(function (record) {
-      return record.values.some(function (value) { return value !== '' && value !== null; });
-    });
+  const count = lastRow - 1;
+  const values = sheet.getRange(2, 1, count, dataColumns).getValues();
+  const ids = idColumn <= sheet.getMaxColumns() ?
+    sheet.getRange(2, idColumn, count, 1).getDisplayValues() :
+    Array.from({ length: count }, function () { return ['']; });
+  return values.map(function (row, index) {
+    return { sheetRow: index + 2, id: String(ids[index][0] || '').trim(), values: row.map(serializeCell_) };
+  }).filter(function (record) {
+    return record.values.some(function (value) { return value !== '' && value !== null; });
+  });
 }
 
 function readOptionalRows_(sheet, columns) {
