@@ -168,6 +168,115 @@ function serializeCell_(value) {
   return value;
 }
 
+/**
+ * READ-ONLY PREVIEW: lists the exact schema changes that would be made.
+ * Run manually in the Apps Script editor. This function never writes.
+ */
+function previewSchemaMigration() {
+  const props = PropertiesService.getScriptProperties();
+  const id = String(props.getProperty('SPREADSHEET_ID') || '').trim();
+  if (!id) throw new Error('Configure SPREADSHEET_ID primeiro.');
+  const ss = SpreadsheetApp.openById(id);
+  const plans = [
+    { name: APP.SHEETS.transactions, idColumn: 8, headers: APP.HEADERS.transactions },
+    { name: APP.SHEETS.payables, idColumn: 8, headers: APP.HEADERS.payables },
+    { name: APP.SHEETS.fixedExpenses, idColumn: 6, headers: APP.HEADERS.fixedExpenses }
+  ];
+  const result = plans.map(function (plan) {
+    const sheet = requiredSheet_(ss, plan.name);
+    const actual = sheet.getRange(1, 1, 1, plan.idColumn).getDisplayValues()[0];
+    const blankIds = Math.max(0, sheet.getLastRow() - 1) -
+      (sheet.getLastRow() < 2 ? 0 : sheet.getRange(2, plan.idColumn, sheet.getLastRow() - 1, 1)
+        .getDisplayValues().filter(function (r) { return String(r[0] || '').trim() !== ''; }).length);
+    return { sheet: plan.name, currentLastColumn: sheet.getMaxColumns(),
+      currentHeader: actual, proposedHeader: plan.headers,
+      existingRecords: Math.max(0, sheet.getLastRow() - 1), blankIds: blankIds };
+  });
+  [APP.SHEETS.history, APP.SHEETS.weekly, APP.SHEETS.goals].forEach(function (name) {
+    const sheet = ss.getSheetByName(name);
+    result.push({ sheet: name, exists: !!sheet,
+      action: sheet ? 'validate existing headers' : 'create new tab with approved headers' });
+  });
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+/**
+ * EXPLICIT, MANUAL MIGRATION ONLY.
+ * Does not run on page load, sync, deploy, or authorization.
+ * Requires the owner to set SCHEMA_MIGRATION_APPROVED=true in Script Properties
+ * and manually run this function after reviewing previewSchemaMigration().
+ */
+function applyApprovedSchemaMigration() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('SCHEMA_MIGRATION_APPROVED') !== 'true') {
+    throw new Error('Migração bloqueada. Revise o preview e defina SCHEMA_MIGRATION_APPROVED=true somente após autorizar expressamente.');
+  }
+  const id = String(props.getProperty('SPREADSHEET_ID') || '').trim();
+  if (!id) throw new Error('Configure SPREADSHEET_ID primeiro.');
+  const ss = SpreadsheetApp.openById(id);
+  const plans = [
+    { name: APP.SHEETS.transactions, idColumn: 8, headers: APP.HEADERS.transactions },
+    { name: APP.SHEETS.payables, idColumn: 8, headers: APP.HEADERS.payables },
+    { name: APP.SHEETS.fixedExpenses, idColumn: 6, headers: APP.HEADERS.fixedExpenses }
+  ];
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    plans.forEach(function (plan) {
+      const sheet = requiredSheet_(ss, plan.name);
+      if (sheet.getMaxColumns() < plan.idColumn) {
+        sheet.insertColumnsAfter(sheet.getMaxColumns(), plan.idColumn - sheet.getMaxColumns());
+      }
+      const existingHeader = sheet.getRange(1, 1, 1, plan.idColumn).getDisplayValues()[0];
+      const expectedPrefix = plan.headers.slice(0, plan.idColumn - 1);
+      expectedPrefix.forEach(function (value, index) {
+        if (String(existingHeader[index] || '').trim() !== value) {
+          throw new Error('Cabeçalho divergente em ' + plan.name + ', coluna ' + (index + 1) + '. Nenhuma migração segura foi aplicada.');
+        }
+      });
+      const lastRow = sheet.getLastRow();
+      if (lastRow >= 2) {
+        const idRange = sheet.getRange(2, plan.idColumn, lastRow - 1, 1);
+        const ids = idRange.getValues();
+        const records = sheet.getRange(2, 1, lastRow - 1, plan.idColumn - 1).getValues();
+        const seen = Object.create(null);
+        ids.forEach(function (row, index) {
+          const idValue = String(row[0] || '').trim();
+          if (idValue && seen[idValue]) throw new Error('ID duplicado encontrado em ' + plan.name + '. Migração interrompida.');
+          if (idValue) seen[idValue] = true;
+          if (!idValue && records[index].some(function (v) { return v !== '' && v !== null; })) {
+            ids[index][0] = Utilities.getUuid();
+          }
+        });
+        idRange.setValues(ids);
+      }
+      sheet.getRange(1, plan.idColumn).setValue('ID');
+    });
+
+    const extraPlans = [
+      { name: APP.SHEETS.history, headers: APP.HEADERS.history },
+      { name: APP.SHEETS.weekly, headers: APP.HEADERS.weekly },
+      { name: APP.SHEETS.goals, headers: APP.HEADERS.goals }
+    ];
+    extraPlans.forEach(function (plan) {
+      let sheet = ss.getSheetByName(plan.name);
+      if (!sheet) sheet = ss.insertSheet(plan.name);
+      if (sheet.getLastRow() === 0) {
+        sheet.getRange(1, 1, 1, plan.headers.length).setValues([plan.headers]);
+      } else {
+        const actual = sheet.getRange(1, 1, 1, plan.headers.length).getDisplayValues()[0];
+        if (!plan.headers.every(function (h, i) { return String(actual[i] || '').trim() === h; })) {
+          throw new Error('A aba ' + plan.name + ' já existe com cabeçalhos diferentes. Revise manualmente; não foi sobrescrita.');
+        }
+      }
+    });
+    return { ok: true, message: 'Estrutura preparada. WRITE_ENABLED continua desativado.', schema: inspectSchema_(ss) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function saveRecord_(ss, email, payload) {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('WRITE_ENABLED') !== 'true') {
