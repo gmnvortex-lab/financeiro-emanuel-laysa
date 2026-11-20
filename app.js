@@ -44,7 +44,7 @@ async function connectGoogle(){
    if(!appsScriptUrl)return;
    const spreadsheetId=prompt('Informe o ID da planilha Google Sheets:');
    if(!spreadsheetId)return;
-   window.FinanceiroSheets.configure({appsScriptUrl,spreadsheetId,allowedAppOrigin:window.location.origin});window.location.reload();
+   window.FinanceiroSheets.configure({appsScriptUrl,spreadsheetId,allowedAppOrigin:window.location.origin});if(!window.financeiroSyncTimer)window.financeiroSyncTimer=setInterval(()=>{if(!document.hidden)syncGoogle()},30000);
   }
   const url=window.FinanceiroSheets.authorizeUrl();
   window.open(url,'_blank','noopener,noreferrer');
