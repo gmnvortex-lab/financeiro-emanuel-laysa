@@ -28,7 +28,7 @@
       frame.name = frameName;
       frame.title = 'Conexão segura com Google Sheets';
       frame.hidden = true;
-      const timeout = setTimeout(() => finish(new Error('TIMEOUT')), 30000);
+      const timeout = setTimeout(() => finish(Object.assign(new Error('TIMEOUT'), { code: 'TIMEOUT' })), 45000);
       function finish(error, value) {
         clearTimeout(timeout);
         global.removeEventListener('message', onMessage);
@@ -37,7 +37,7 @@
         error ? reject(error) : resolve(value);
       }
       function onMessage(event) {
-        if (!event.origin.endsWith('.googleusercontent.com') || !event.data ||
+        if (!(event.origin === 'https://script.google.com' || /^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/i.test(event.origin)) || event.source !== frame.contentWindow || !event.data ||
             event.data.channel !== CHANNEL || event.data.nonce !== nonce) return;
         const result = event.data.result;
         if (!result || result.ok !== true) {
