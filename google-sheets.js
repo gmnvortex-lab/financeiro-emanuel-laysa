@@ -37,7 +37,7 @@
         error ? reject(error) : resolve(value);
       }
       function onMessage(event) {
-        if (event.source !== frame.contentWindow || !event.data ||
+        if (!event.origin.endsWith('.googleusercontent.com') || !event.data ||
             event.data.channel !== CHANNEL || event.data.nonce !== nonce) return;
         const result = event.data.result;
         if (!result || result.ok !== true) {
