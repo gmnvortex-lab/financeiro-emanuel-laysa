@@ -98,6 +98,6 @@
     },
     sync: function () { return request('sync'); },
     // Escritas ficam bloqueadas até a aprovação e preparação das colunas de ID e aba Histórico.
-    save: function () { return Promise.reject(new Error('SCHEMA_CHANGE_REQUIRED')); }
+    save: function (payload) { return request('save', payload); }
   });
 })(window);
