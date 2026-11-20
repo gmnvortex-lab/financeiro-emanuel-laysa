@@ -189,9 +189,10 @@ function previewSchemaMigration() {
     const sheet = requiredSheet_(ss, plan.name);
     const width = Math.min(sheet.getMaxColumns(), plan.idColumn);
     const actual = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
-    const blankIds = Math.max(0, sheet.getLastRow() - 1) -
-      (sheet.getLastRow() < 2 ? 0 : sheet.getRange(2, plan.idColumn, sheet.getLastRow() - 1, 1)
-        .getDisplayValues().filter(function (r) { return String(r[0] || '').trim() !== ''; }).length);
+    const existingIdCount = sheet.getMaxColumns() < plan.idColumn || sheet.getLastRow() < 2 ? 0 :
+      sheet.getRange(2, plan.idColumn, sheet.getLastRow() - 1, 1)
+        .getDisplayValues().filter(function (r) { return String(r[0] || '').trim() !== ''; }).length;
+    const blankIds = Math.max(0, sheet.getLastRow() - 1) - existingIdCount;
     return { sheet: plan.name, currentLastColumn: sheet.getMaxColumns(),
       currentHeader: actual, proposedHeader: plan.headers,
       existingRecords: Math.max(0, sheet.getLastRow() - 1), blankIds: blankIds };
