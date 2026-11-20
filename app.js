@@ -31,11 +31,18 @@ function remove(id){if(remoteMode){toast('A conexão está em modo de leitura.')
 function csv(){let rows=[];Object.entries(cfg).forEach(([k])=>data[k].filter(r=>!(remoteMode&&k==='expenses'&&r.kind==='Variável')).forEach(r=>rows.push({modulo:cfg[k].title,...r})));if(!rows.length){toast('Não há registros para exportar.');return}let keys=[...new Set(rows.flatMap(Object.keys))],content=[keys.join(';'),...rows.map(r=>keys.map(k=>'"'+String(r[k]??'').replace(/"/g,'""')+'"').join(';'))].join('\r\n'),url=URL.createObjectURL(new Blob(['\ufeff'+content],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='financeiro-emanuel-laysa.csv';a.click();URL.revokeObjectURL(url);toast('Relatório exportado.')}
 async function connectGoogle(){
  try{
-  if(!window.FinanceiroSheets?.isConfigured()) throw new Error('CONFIG_MISSING');
+  if(!window.FinanceiroSheets?.isConfigured()){
+   const appsScriptUrl=prompt('Cole a URL /exec do Web App do Google Apps Script:');
+   if(!appsScriptUrl)return;
+   const spreadsheetId=prompt('Informe o ID da planilha Google Sheets:');
+   if(!spreadsheetId)return;
+   window.FinanceiroSheets.configure({appsScriptUrl,spreadsheetId,allowedAppOrigin:window.location.origin});
+  }
   const url=window.FinanceiroSheets.authorizeUrl();
   window.open(url,'_blank','noopener,noreferrer');
+  render();
   toast('Conclua a autorização Google na nova aba e depois volte ao painel para sincronizar.');
- }catch(e){toast('Configure config.js com a URL do Apps Script e a origem do painel.')}
+ }catch(e){toast(e.message==='CONFIG_INVALID'?'Confira a URL do Apps Script e o ID da planilha.':'Não foi possível configurar a conexão.')}
 }
 async function syncGoogle(){
  const button=$('#syncGoogle');button.disabled=true;button.textContent='Sincronizando...';
