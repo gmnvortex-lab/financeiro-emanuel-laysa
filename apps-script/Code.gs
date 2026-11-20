@@ -44,16 +44,10 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  // Escrita deliberadamente bloqueada até validar autenticação e escopos.
   const p = (e && e.parameter) || {};
-  try {
-    const context = authorize_(p);
-    if (p.action !== 'save') throw codedError_('Ação não permitida.', 'ACTION_DENIED');
-    const payload = JSON.parse(String(p.payload || '{}'));
-    const result = saveRecord_(context.spreadsheet, context.email, payload);
-    return bridge_(p, { ok: true, data: result });
-  } catch (err) {
-    return bridge_(p, { ok: false, code: err.code || 'ACCESS_DENIED', error: safeMessage_(err) });
-  }
+  return bridge_(p, { ok: false, code: 'WRITE_NOT_AVAILABLE',
+    error: 'Gravações bloqueadas nesta implantação. Conclua autenticação, migração aprovada e testes de permissão.' });
 }
 
 function authorize_(p) {
