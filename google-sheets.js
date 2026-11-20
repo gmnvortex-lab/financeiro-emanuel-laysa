@@ -4,7 +4,12 @@
 (function (global) {
   'use strict';
   const CHANNEL = 'financeiro-emanuel-laysa';
-  let config = global.FINANCEIRO_CONFIG || {};
+  const CONFIG_KEY = 'financeiro-google-config-v1';
+  function loadConfig() {
+    if (global.FINANCEIRO_CONFIG) return global.FINANCEIRO_CONFIG;
+    try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); } catch (_) { return {}; }
+  }
+  let config = loadConfig();
   let pending = new Map();
 
   function configured() {
@@ -73,6 +78,15 @@
   }
 
   global.FinanceiroSheets = Object.freeze({
+    configure: function (next) {
+      const candidate = { appsScriptUrl: String(next.appsScriptUrl || '').trim(),
+        spreadsheetId: String(next.spreadsheetId || '').trim(),
+        allowedAppOrigin: String(next.allowedAppOrigin || global.location.origin).trim() };
+      const previous = config; config = candidate;
+      if (!configured()) { config = previous; throw new Error('CONFIG_INVALID'); }
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(candidate));
+      return true;
+    },
     isConfigured: configured,
     authorizeUrl: function () {
       if (!configured()) throw new Error('CONFIG_MISSING');
